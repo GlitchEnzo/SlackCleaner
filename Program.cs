@@ -47,8 +47,8 @@ namespace SlackCleaner
                 Console.WriteLine("Accessing {0}\n", searchUrl);
 
                 HttpWebRequest searchRequest = (HttpWebRequest)WebRequest.Create(searchUrl);
-                searchRequest.Timeout = 5000;
-                searchRequest.ReadWriteTimeout = 5000;
+                searchRequest.Timeout = 10000;
+                searchRequest.ReadWriteTimeout = 10000;
 
                 WebResponse searchResponse = searchRequest.GetResponse();
                 dynamic jsonObject = GetJSONObject(searchResponse);
@@ -76,8 +76,8 @@ namespace SlackCleaner
                             HttpWebResponse deleteResponse = (HttpWebResponse)searchRequest.GetResponse();
                             dynamic deleteObject = GetJSONObject(deleteResponse);
 
-                            //if (jsonObject.ok == "true") //NewtonSoft.Json
-                            if (jsonObject.ok) //SimpleJson
+                            //if (deleteObject.ok == "true") //NewtonSoft.Json
+                            if (deleteObject.ok) //SimpleJson
                             {
                                 Console.WriteLine("Deleting... OK\n");
                             }
@@ -93,6 +93,45 @@ namespace SlackCleaner
                             WriteError("Deleting... Exception Thrown: - {0}\n", e.Message);
                         }
 
+                    }
+
+                    Console.WriteLine("Delete files? (Y/N)");
+                    var pressedKey = Console.ReadKey();
+                    if (pressedKey.Key == ConsoleKey.Y)
+                    {
+                        // See here; https://api.slack.com/methods/files.delete
+                        string deleteFileUrl = "https://slack.com/api/files.delete?token={0}&file={1}";
+
+                        foreach (var file in jsonObject.files.matches)
+                        {
+                            Console.WriteLine("[FILE] {0}", file.id);
+
+                            searchRequest = (HttpWebRequest)WebRequest.Create(string.Format(deleteFileUrl, token, file.id));
+                            searchRequest.Timeout = 5000;
+                            searchRequest.ReadWriteTimeout = 5000;
+                            try
+                            {
+                                HttpWebResponse deleteResponse = (HttpWebResponse)searchRequest.GetResponse();
+                                dynamic deleteObject = GetJSONObject(deleteResponse);
+
+                                //if (deleteObject.ok == "true") //NewtonSoft.Json
+                                if (deleteObject.ok) //SimpleJson
+                                {
+                                    Console.WriteLine("Deleting... OK\n");
+                                }
+                                else
+                                {
+                                    WriteError("Deleting... Error - {0}\n", deleteObject.error);
+                                }
+
+                                deleteResponse.Close();
+                            }
+                            catch (Exception e)
+                            {
+                                WriteError("Deleting... Exception Thrown: - {0}\n", e.Message);
+                            }
+
+                        }
                     }
                 }
                 else
